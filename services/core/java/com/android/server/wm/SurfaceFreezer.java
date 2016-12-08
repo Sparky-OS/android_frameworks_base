@@ -21,6 +21,8 @@ import static com.android.server.wm.SurfaceAnimator.ANIMATION_TYPE_SCREEN_ROTATI
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
+import android.content.Intent;
 import android.graphics.GraphicBuffer;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
@@ -223,8 +225,19 @@ class SurfaceFreezer {
                 SurfaceControl.ScreenshotHardwareBuffer screenshotBuffer, SurfaceControl parent) {
             GraphicBuffer graphicBuffer = createFromHardwareBufferInner(screenshotBuffer);
 
+            String surfaceName = "snapshot anim: " + mAnimatable.toString();
+            if (mAnimatable instanceof Task) {
+                Task task = (Task)mAnimatable;
+                Intent intent = task.getBaseIntent();
+                if (intent != null) {
+                    ComponentName component = intent.getComponent();
+                    if (component != null) {
+                        surfaceName = "TID:" + task.mTaskId + "#" + component.getPackageName() + "/SnapshotAnim";
+                    }
+                }
+            }
             mSurfaceControl = mAnimatable.makeAnimationLeash()
-                    .setName("snapshot anim: " + mAnimatable.toString())
+                    .setName(surfaceName)
                     .setFormat(PixelFormat.TRANSLUCENT)
                     .setParent(parent)
                     .setSecure(screenshotBuffer.containsSecureLayers())

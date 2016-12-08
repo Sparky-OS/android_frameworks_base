@@ -309,7 +309,12 @@ class WindowStateAnimator {
             final boolean isHwAccelerated = (attrs.flags & FLAG_HARDWARE_ACCELERATED) != 0;
             final int format = isHwAccelerated ? PixelFormat.TRANSLUCENT : attrs.format;
 
-            mSurfaceController = new WindowSurfaceController(attrs.getTitle().toString(), format,
+            String name = attrs.getTitle().toString();
+            Task task = mWin.getTask();
+            if (task != null) {
+                name = String.format("TID:%d#", task.mTaskId) + name;
+            }
+            mSurfaceController = new WindowSurfaceController(name, format,
                     flags, this, attrs.type);
             mSurfaceController.setColorSpaceAgnostic((attrs.privateFlags
                     & WindowManager.LayoutParams.PRIVATE_FLAG_COLOR_SPACE_AGNOSTIC) != 0);

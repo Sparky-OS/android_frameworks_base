@@ -119,7 +119,7 @@ public class TaskSnapshotWindow {
             | FLAG_SECURE;
 
     private static final String TAG = StartingWindowController.TAG;
-    private static final String TITLE_FORMAT = "SnapshotStartingWindow for taskId=%s";
+    private static final String TITLE_FORMAT = "/SnapshotStartingWindow";
 
     private static final long DELAY_REMOVAL_TIME_GENERAL = 100;
     /**
@@ -197,7 +197,7 @@ public class TaskSnapshotWindow {
         layoutParams.setFitInsetsSides(attrs.getFitInsetsSides());
         layoutParams.setFitInsetsIgnoringVisibility(attrs.isFitInsetsIgnoringVisibility());
 
-        layoutParams.setTitle(String.format(TITLE_FORMAT, taskId));
+        layoutParams.setTitle(mainWindowParams.packageName + TITLE_FORMAT);
 
         final Point taskSize = snapshot.getTaskSize();
         final Rect taskBounds = new Rect(0, 0, taskSize.x, taskSize.y);

@@ -201,7 +201,7 @@ public abstract class WindowDecoration<T extends View & TaskFocusStateConsumer>
         if (mDecorationContainerSurface == null) {
             final SurfaceControl.Builder builder = mSurfaceControlBuilderSupplier.get();
             mDecorationContainerSurface = builder
-                    .setName("Decor container of Task=" + mTaskInfo.taskId)
+                    .setName("TID:" + mTaskInfo.taskId + "#" + mTaskInfo.baseActivity.getPackageName() + "/DecorContainer")
                     .setContainerLayer()
                     .setParent(mTaskSurface)
                     .build();
@@ -232,7 +232,7 @@ public abstract class WindowDecoration<T extends View & TaskFocusStateConsumer>
         if (mTaskBackgroundSurface == null) {
             final SurfaceControl.Builder builder = mSurfaceControlBuilderSupplier.get();
             mTaskBackgroundSurface = builder
-                    .setName("Background of Task=" + mTaskInfo.taskId)
+                    .setName("TID:" + mTaskInfo.taskId + "#" + mTaskInfo.baseActivity.getPackageName() + "/Background")
                     .setEffectLayer()
                     .setParent(mTaskSurface)
                     .build();
@@ -255,7 +255,7 @@ public abstract class WindowDecoration<T extends View & TaskFocusStateConsumer>
         if (mCaptionContainerSurface == null) {
             final SurfaceControl.Builder builder = mSurfaceControlBuilderSupplier.get();
             mCaptionContainerSurface = builder
-                    .setName("Caption container of Task=" + mTaskInfo.taskId)
+                    .setName("TID:" + mTaskInfo.taskId + "#" + mTaskInfo.baseActivity.getPackageName() + "/CaptionContainer")
                     .setContainerLayer()
                     .setParent(mDecorationContainerSurface)
                     .build();

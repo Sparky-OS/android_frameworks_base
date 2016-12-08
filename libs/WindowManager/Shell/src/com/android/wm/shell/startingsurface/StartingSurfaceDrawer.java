@@ -309,7 +309,7 @@ public class StartingSurfaceDrawer {
             params.privateFlags |= WindowManager.LayoutParams.PRIVATE_FLAG_COMPATIBLE_WINDOW;
         }
 
-        params.setTitle("Splash Screen " + activityInfo.packageName);
+        params.setTitle(activityInfo.packageName + "/SplashScreen");
 
         // TODO(b/173975965) tracking performance
         // Prepare the splash screen content view on splash screen worker thread in parallel, so the

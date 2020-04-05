@@ -398,6 +398,21 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         }
 
         if (!mWindow.isDestroyed()) {
+            // region @waydroid
+            if (keyCode == KeyEvent.KEYCODE_F11 && isDown) {
+                Window.WindowControllerCallback callback = mWindow.getWindowControllerCallback();
+                final int windowingMode =
+                        getResources().getConfiguration().windowConfiguration.getWindowingMode();
+                if (windowingMode == WINDOWING_MODE_FREEFORM && callback != null) {
+                    callback.toggleFreeformWindowingMode();
+                    updateDecorCaptionShade();
+                } else if (windowingMode != WINDOWING_MODE_FREEFORM && callback != null) {
+                    callback.toggleFreeformWindowingMode();
+                    updateDecorCaptionShade();
+                }
+                return true;
+            }
+            // endregion
             final Window.Callback cb = mWindow.getCallback();
             final boolean handled = cb != null && mFeatureId < 0 ? cb.dispatchKeyEvent(event)
                     : super.dispatchKeyEvent(event);

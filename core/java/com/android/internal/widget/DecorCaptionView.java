@@ -102,6 +102,10 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     private final Rect mPipRect = new Rect();
     private View mClickTarget;
     private int mRootScrollY;
+    // region @boringdroid
+    private View mBack;
+    private final Rect mBackRect = new Rect();
+    // endregion
 
     public DecorCaptionView(Context context) {
         super(context);
@@ -139,6 +143,9 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         // By changing the outline provider to BOUNDS, the window can remove its
         // background without removing the shadow.
         mOwner.getDecorView().setOutlineProvider(ViewOutlineProvider.BOUNDS);
+        // region @boringdroid
+        mBack = findViewById(R.id.back_window);
+        // endregion
         // region @bliss
         mPip = findViewById(R.id.pip_window);
         if (mPip != null && !supportPip()) {
@@ -157,6 +164,11 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             final int x = (int) ev.getX();
             final int y = (int) ev.getY();
+            // region @boringdroid
+            if (mBackRect.contains(x, y)) {
+                mClickTarget = mBack;
+            }
+            // endregion
             // Only offset y for containment tests because the actual views are already translated.
             if (mPipRect.contains(x, y - mRootScrollY)) {
                 mClickTarget = mPip;
@@ -303,12 +315,18 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         if (mCaption.getVisibility() != View.GONE) {
             mCaption.layout(0, 0, mCaption.getMeasuredWidth(), mCaption.getMeasuredHeight());
             captionHeight = mCaption.getBottom() - mCaption.getTop();
+            // region @boringdroid
+            mBack.getHitRect(mBackRect);
+            // endregion
             mPip.getHitRect(mPipRect);
             mMinimize.getHitRect(mMinimizeRect);
             mMaximize.getHitRect(mMaximizeRect);
             mClose.getHitRect(mCloseRect);
         } else {
             captionHeight = 0;
+            // region @boringdroid
+            mBackRect.setEmpty();
+            // endregion
             mPipRect.setEmpty();
             mMinimizeRect.setEmpty();
             mMaximizeRect.setEmpty();
@@ -327,8 +345,12 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         ((DecorView) mOwner.getDecorView()).notifyCaptionHeightChanged();
 
         // This assumes that the caption bar is at the top.
-        mOwner.notifyRestrictedCaptionAreaCallback(mPip.getLeft(), mMaximize.getTop(),
+        // region @boringdroid
+        // mOwner.notifyRestrictedCaptionAreaCallback(mPip.getLeft(), mMaximize.getTop(),
+        //         mClose.getRight(), mClose.getBottom());
+        mOwner.notifyRestrictedCaptionAreaCallback(mBack.getLeft(), mBack.getTop(),
                 mClose.getRight(), mClose.getBottom());
+        // endregion
     }
 
     /**
@@ -425,6 +447,15 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
 
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
+        // region @boringdroid
+        if (mClickTarget == mBack) {
+            Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
+            if (callback != null) {
+                callback.onBackPressed();
+            }
+            return true;
+        }
+        // endregion
         if (mClickTarget == mMinimize) {
             minimizeWindow();
         } else if (mClickTarget == mPip) {

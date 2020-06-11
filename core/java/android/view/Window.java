@@ -672,6 +672,10 @@ public abstract class Window {
         void updateNavigationBarColor(int color);
 
         boolean moveTaskToBack(boolean nonRoot);
+
+        // region @boringdroid
+        default void onBackPressed() {};
+        // endregion
     }
 
     /** @hide */

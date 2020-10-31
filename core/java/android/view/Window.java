@@ -643,6 +643,15 @@ public abstract class Window {
          */
         void toggleFreeformWindowingMode();
 
+        // region @bliss
+        /**
+        * Check whether the activity supports pip.
+        * @see android.R.attr#supportsPictureInPicture
+        * @hide
+        */
+        boolean supportPictureInPictureMode();
+        // endregion
+
         /**
          * Puts the activity in picture-in-picture mode if the activity supports.
          * @see android.R.attr#supportsPictureInPicture

@@ -1845,8 +1845,7 @@ public final class SurfaceControl implements Parcelable {
 
     @Override
     public String toString() {
-        return "Surface(name=" + mName + ")/@0x" +
-                Integer.toHexString(System.identityHashCode(this));
+        return mName;
     }
 
     /**

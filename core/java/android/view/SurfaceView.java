@@ -22,6 +22,7 @@ import static android.view.WindowManagerPolicyConstants.APPLICATION_PANEL_SUBLAY
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.Activity;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.Context;
 import android.content.res.CompatibilityInfo.Translator;
@@ -963,7 +964,10 @@ public class SurfaceView extends View implements ViewRootImpl.SurfaceChangedCall
                 final Transaction surfaceUpdateTransaction = new Transaction();
                 if (creating) {
                     updateOpaqueFlag();
-                    final String name = "SurfaceView[" + viewRoot.getTitle().toString() + "]";
+                    String name = viewRoot.getTitle().toString();
+                    if (getContext() instanceof Activity) {
+                        name = String.format("TID:%d#", ((Activity)getContext()).getTaskId()) + name;
+                    }
                     createBlastSurfaceControls(viewRoot, name, surfaceUpdateTransaction);
                 } else if (mSurfaceControl == null) {
                     return;
@@ -1220,7 +1224,7 @@ public class SurfaceView extends View implements ViewRootImpl.SurfaceChangedCall
 
         if (mBackgroundControl == null) {
             mBackgroundControl = new SurfaceControl.Builder(mSurfaceSession)
-                    .setName("Background for " + name)
+                    .setName(name + "$Background")
                     .setLocalOwnerView(this)
                     .setOpaque(true)
                     .setColorLayer()

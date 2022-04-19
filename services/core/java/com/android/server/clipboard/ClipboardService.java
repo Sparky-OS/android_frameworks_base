@@ -92,6 +92,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
 
+import lineageos.waydroid.Clipboard;
+
 /**
  * Implementation of the clipboard for copy and paste.
  * <p>
@@ -139,6 +141,7 @@ public class ClipboardService extends SystemService {
     private final IBinder mPermissionOwner;
     private final Consumer<ClipData> mEmulatorClipboardMonitor;
     private final Handler mWorkerHandler;
+    private Clipboard mWaydroidClipboard;
 
     @GuardedBy("mLock")
     private final SparseArray<PerUserClipboard> mClipboards = new SparseArray<>();
@@ -189,6 +192,8 @@ public class ClipboardService extends SystemService {
         HandlerThread workerThread = new HandlerThread(TAG);
         workerThread.start();
         mWorkerHandler = workerThread.getThreadHandler();
+
+        mWaydroidClipboard = Clipboard.getInstance(context);
     }
 
     @Override
@@ -404,6 +409,11 @@ public class ClipboardService extends SystemService {
                 scheduleAutoClear(userId, intendingUid);
                 setPrimaryClipInternalLocked(clip, intendingUid, sourcePackage);
             }
+            if (mWaydroidClipboard != null) {
+                ClipData.Item firstItem = clip.getItemAt(0);
+                String text = firstItem.getText().toString();
+                mWaydroidClipboard.sendClipboardData(text);
+            }
         }
 
         private void scheduleAutoClear(@UserIdInt int userId, int intendingUid) {
@@ -477,6 +487,15 @@ public class ClipboardService extends SystemService {
                     return null;
                 }
 
+                if (mWaydroidClipboard != null && mWaydroidClipboard.getService() != null) {
+                    String waydroidPaste = mWaydroidClipboard.getClipboardData();
+                    ClipData clip =
+                        new ClipData("host clipboard",
+                                     new String[]{"text/plain"},
+                                     new ClipData.Item(waydroidPaste));
+                    return clip;
+                }
+
                 PerUserClipboard clipboard = getClipboardLocked(intendingUserId);
                 showAccessNotificationLocked(pkg, intendingUid, intendingUserId, clipboard);
                 notifyTextClassifierLocked(clipboard, pkg, intendingUid);
@@ -523,6 +542,10 @@ public class ClipboardService extends SystemService {
                             false)
                     || isDeviceLocked(intendingUserId)) {
                 return false;
+            }
+            if (mWaydroidClipboard != null && mWaydroidClipboard.getService() != null) {
+                String waydroidPaste = mWaydroidClipboard.getClipboardData();
+                return !waydroidPaste.isEmpty();
             }
             synchronized (mLock) {
                 return getClipboardLocked(intendingUserId).primaryClip != null;

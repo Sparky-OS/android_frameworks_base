@@ -18,6 +18,7 @@ package com.android.internal.widget;
 
 import android.content.Context;
 import android.graphics.Rect;
+import android.os.RemoteException;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -32,6 +33,9 @@ import com.android.internal.policy.DecorView;
 import com.android.internal.policy.PhoneWindow;
 
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
+
+import vendor.waydroid.window.V1_0.IWaydroidWindow;
 
 /**
  * This class represents the special screen elements to control a window on freeform
@@ -106,6 +110,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     private View mBack;
     private final Rect mBackRect = new Rect();
     // endregion
+    private IWaydroidWindow mWaydroidWindow;
 
     public DecorCaptionView(Context context) {
         super(context);
@@ -127,6 +132,10 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         mGestureDetector = new GestureDetector(context, this);
         setContentDescription(context.getString(R.string.accessibility_freeform_caption,
                 context.getPackageManager().getApplicationLabel(context.getApplicationInfo())));
+
+        try {
+            mWaydroidWindow = IWaydroidWindow.getService(false /* retry */);
+        } catch (NoSuchElementException | RemoteException ignored) {}
     }
 
     @Override
@@ -381,6 +390,11 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     }
 
     private void minimizeWindow() {
+        try {
+            if (mWaydroidWindow != null && mWaydroidWindow.minimize(getContext().getPackageName()))
+                return;
+        } catch (RemoteException ignored) {}
+
         Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
         if (callback != null) {
             callback.moveTaskToBack(true);

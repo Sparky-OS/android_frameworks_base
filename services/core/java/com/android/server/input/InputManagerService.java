@@ -82,6 +82,7 @@ import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.os.ResultReceiver;
 import android.os.ShellCallback;
+import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.VibrationEffect;
 import android.os.vibrator.StepSegment;
@@ -574,6 +575,13 @@ public class InputManagerService extends IInputManager.Stub
 
         if (mWiredAccessoryCallbacks != null) {
             mWiredAccessoryCallbacks.systemReady();
+        }
+
+        String wl_keylayout = SystemProperties.get("waydroid.keyboard_layout");
+        if (wl_keylayout != "") {
+            addKeyboardLayoutForInputDevice(new InputDeviceIdentifier("vendor:1,product:1", 1, 1),
+                    "com.android.inputdevices/com.android.inputdevices.InputDeviceReceiver/keyboard_layout_" +
+                        wl_keylayout);
         }
     }
 

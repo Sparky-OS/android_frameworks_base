@@ -71,6 +71,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.InsetDrawable;
 import android.graphics.drawable.LayerDrawable;
+import android.os.RemoteException;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Pair;
@@ -124,7 +125,10 @@ import com.android.internal.widget.DecorCaptionView;
 import com.android.internal.widget.floatingtoolbar.FloatingToolbar;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.Consumer;
+
+import vendor.waydroid.window.V1_1.IWaydroidWindow;
 
 /** @hide */
 public class DecorView extends FrameLayout implements RootViewSurfaceTaker, WindowCallbacks {
@@ -242,6 +246,8 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
     @UnsupportedAppUsage
     private PhoneWindow mWindow;
 
+    private IWaydroidWindow mWaydroidWindow;
+
     ViewGroup mContentRoot;
 
     private Rect mTempRect;
@@ -324,6 +330,10 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         initResizingPaints();
 
         mLegacyNavigationBarBackgroundPaint.setColor(Color.BLACK);
+
+        try {
+            mWaydroidWindow = IWaydroidWindow.getService(false /* retry */);
+        } catch (NoSuchElementException | RemoteException ignored) {}
     }
 
     void setBackgroundFallback(@Nullable Drawable fallbackDrawable) {
@@ -2674,6 +2684,11 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         super.dispatchPointerCaptureChanged(hasCapture);
         if (!mWindow.isDestroyed() && mWindow.getCallback() != null) {
             mWindow.getCallback().onPointerCaptureChanged(hasCapture);
+        }
+        if (mWaydroidWindow != null) {
+            try {
+                mWaydroidWindow.setPointerCapture(getContext().getPackageName(), hasCapture);
+            } catch (RemoteException ignored) {}
         }
     }
 

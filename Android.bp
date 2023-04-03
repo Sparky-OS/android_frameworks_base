@@ -250,6 +250,7 @@ java_library {
         "SurfaceFlingerProperties",
 
         "vendor.waydroid.window-V1.0-java",
+        "vendor.waydroid.window-V1.1-java",
     ],
     sdk_version: "core_platform",
     installable: false,

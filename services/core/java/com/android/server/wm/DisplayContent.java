@@ -251,6 +251,8 @@ import com.android.server.wm.utils.RegionUtils;
 import com.android.server.wm.utils.RotationCache;
 import com.android.server.wm.utils.WmDisplayCutout;
 
+import vendor.waydroid.window.V1_2.IWaydroidWindow;
+
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -259,6 +261,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -938,6 +941,9 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
             w -> getDisplayPolicy().applyPostLayoutPolicyLw(w, w.mAttrs, w.getParentWindow(),
                     mImeLayeringTarget);
 
+    final HashMap<String, Boolean> mIdleInhibitMap = new HashMap<>();
+    private IWaydroidWindow mWaydroidWindow;
+
     private final Consumer<WindowState> mApplySurfaceChangesTransaction = w -> {
         final WindowSurfacePlacer surfacePlacer = mWmService.mWindowPlacerLocked;
         final boolean obscuredChanged = w.mObscured !=
@@ -967,7 +973,17 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
             }
 
             if (w.mHasSurface && isDisplayed) {
-                if ((w.mAttrs.flags & FLAG_KEEP_SCREEN_ON) != 0) {
+                final boolean hold = (w.mAttrs.flags & FLAG_KEEP_SCREEN_ON) != 0;
+                if (mWaydroidWindow != null && w.getTask() != null) {
+                    String id = w.getOwningUid() + "#" + w.getTask().mTaskId;
+                    if (mIdleInhibitMap.getOrDefault(id, false) != hold) {
+                        mIdleInhibitMap.put(id, hold);
+                        try {
+                            mWaydroidWindow.setIdleInhibit(Integer.toString(w.getTask().mTaskId), hold);
+                        } catch (RemoteException ignored) {}
+                    }
+                }
+                if (hold) {
                     mTmpHoldScreenWindow = w;
                 } else if (w == mLastWakeLockHoldingWindow) {
                     ProtoLog.d(WM_DEBUG_KEEP_SCREEN_ON,
@@ -1181,6 +1197,10 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
 
         setWindowingMode(WINDOWING_MODE_FULLSCREEN);
         mWmService.mDisplayWindowSettings.applySettingsToDisplayLocked(this);
+
+        try {
+            mWaydroidWindow = IWaydroidWindow.getService(false /* retry */);
+        } catch (NoSuchElementException | RemoteException ignored) {}
     }
 
     private void beginHoldScreenUpdate() {
@@ -1190,6 +1210,14 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
 
     private void finishHoldScreenUpdate() {
         final boolean hold = mTmpHoldScreenWindow != null;
+
+        if (mWaydroidWindow != null && !hold && mIdleInhibitMap.values().contains(true)) {
+            mIdleInhibitMap.clear();
+            try {
+                mWaydroidWindow.setIdleInhibit("*", false);
+            } catch (RemoteException ignored) {}
+        }
+
         if (hold && mTmpHoldScreenWindow != mHoldScreenWindow) {
             mHoldScreenWakeLock.setWorkSource(new WorkSource(mTmpHoldScreenWindow.mSession.mUid));
         }

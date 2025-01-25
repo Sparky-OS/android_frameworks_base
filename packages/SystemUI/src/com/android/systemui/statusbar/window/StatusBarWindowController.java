@@ -41,6 +41,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 
+import android.database.ContentObserver;
+import android.os.Handler;
+import android.provider.Settings;
+
 import com.android.internal.policy.SystemBarUtils;
 import com.android.systemui.R;
 import com.android.systemui.animation.ActivityLaunchAnimator;
@@ -81,6 +85,8 @@ public class StatusBarWindowController {
     private WindowManager.LayoutParams mLp;
     private final WindowManager.LayoutParams mLpChanged;
 
+    private boolean mImmersive;
+
     @Inject
     public StatusBarWindowController(
             Context context,
@@ -108,6 +114,22 @@ public class StatusBarWindowController {
                 unfoldProgressProvider -> unfoldProgressProvider.addCallback(
                         new JankMonitorTransitionProgressListener(
                                 /* attachedViewProvider=*/ () -> mStatusBarWindowView)));
+
+        mImmersive = SystemBarUtils.isImmersive(context);
+        context.getContentResolver().registerContentObserver(
+            Settings.Global.getUriFor(Settings.Global.POLICY_CONTROL),
+            false,
+            new ContentObserver(new Handler(context.getMainLooper())) {
+                @Override
+                public void onChange(boolean selfChange) {
+                    boolean immersive = SystemBarUtils.isImmersive(context);
+                    if (mImmersive != immersive) {
+                        mImmersive = immersive;
+                        refreshStatusBarHeight();
+                    }
+                }
+            }
+        );
     }
 
     public int getStatusBarHeight() {

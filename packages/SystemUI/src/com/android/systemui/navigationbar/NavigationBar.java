@@ -99,6 +99,10 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
 import android.view.inputmethod.InputMethodManager;
 
+import android.database.ContentObserver;
+import android.os.Handler;
+import android.provider.Settings;
+
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
@@ -280,6 +284,8 @@ public class NavigationBar extends ViewController<NavigationBarView> implements 
     private final DeadZone mDeadZone;
     private boolean mImeVisible;
     private final Rect mSamplingBounds = new Rect();
+
+    private boolean mImmersive;
 
     /**
      * When quickswitching between apps of different orientations, we draw a secondary home handle
@@ -658,6 +664,28 @@ public class NavigationBar extends ViewController<NavigationBarView> implements 
         mView.setEdgeBackGestureHandler(mEdgeBackGestureHandler);
         mView.setDisplayTracker(mDisplayTracker);
         mNavBarMode = mNavigationModeController.addListener(mModeChangedListener);
+
+        mImmersive = isImmersive(context);
+        context.getContentResolver().registerContentObserver(
+            Settings.Global.getUriFor(Settings.Global.POLICY_CONTROL),
+            false,
+            new ContentObserver(new Handler(context.getMainLooper())) {
+                @Override
+                public void onChange(boolean selfChange) {
+                    boolean immersive = isImmersive(context);
+                    if (mImmersive != immersive) {
+                        mImmersive = immersive;
+                        repositionNavigationBar(mCurrentRotation);
+                    }
+                }
+            }
+        );
+
+    }
+
+    private static boolean isImmersive(Context context) {
+        String policy = Settings.Global.getString(context.getContentResolver(), Settings.Global.POLICY_CONTROL);
+        return "immersive.full=*".equals(policy);
     }
 
     public NavigationBarView getView() {
@@ -1669,6 +1697,11 @@ public class NavigationBar extends ViewController<NavigationBarView> implements 
                             com.android.internal.R.dimen.navigation_bar_width);
                     break;
             }
+        }
+        if (mImmersive) {
+            height = 0;
+            width = 0;
+            insetsHeight = 0;
         }
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                 width,

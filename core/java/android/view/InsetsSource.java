@@ -90,6 +90,8 @@ public class InsetsSource implements Parcelable {
     }
 
     public void setVisible(boolean visible) {
+        if (InsetsState.shouldForceHide(mType))
+            visible = false;
         mVisible = visible;
     }
 

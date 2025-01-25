@@ -23,6 +23,8 @@ import android.util.RotationUtils;
 import android.view.DisplayCutout;
 import android.view.Surface;
 
+import android.provider.Settings;
+
 import com.android.internal.R;
 
 /**
@@ -32,10 +34,19 @@ import com.android.internal.R;
  */
 public final class SystemBarUtils {
 
+    public static boolean isImmersive(Context context) {
+        String policy = Settings.Global.getString(context.getContentResolver(), Settings.Global.POLICY_CONTROL);
+        return
+            "immersive.full=*".equals(policy) ||
+            "immersive.status=*".equals(policy);
+    }
+
     /**
      * Gets the status bar height.
      */
     public static int getStatusBarHeight(Context context) {
+        if (isImmersive(context))
+            return 0;
         return getStatusBarHeight(context.getResources(), context.getDisplay().getCutout());
     }
 
@@ -56,6 +67,8 @@ public final class SystemBarUtils {
      */
     public static int getStatusBarHeightForRotation(
             Context context, @Surface.Rotation int targetRot) {
+        if (isImmersive(context))
+            return 0;
         final int rotation = context.getDisplay().getRotation();
         final DisplayCutout cutout = context.getDisplay().getCutout();
 

@@ -37,6 +37,7 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.WindowConfiguration;
+import android.content.Context;
 import android.graphics.Insets;
 import android.graphics.Rect;
 import android.os.Parcel;
@@ -49,6 +50,7 @@ import android.view.WindowInsets.Type.InsetsType;
 import android.view.WindowManager.LayoutParams.SoftInputModeFlags;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.policy.SystemBarUtils;
 
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
@@ -62,6 +64,8 @@ import java.util.StringJoiner;
  * @hide
  */
 public class InsetsState implements Parcelable {
+
+    public static Context sWmContext;
 
     /**
      * Internal representation of inset source types. This is different from the public API in
@@ -227,7 +231,7 @@ public class InsetsState implements Parcelable {
         final Rect relativeFrameMax = new Rect(frame);
         for (int type = FIRST_TYPE; type <= LAST_TYPE; type++) {
             InsetsSource source = mSources[type];
-            if (source == null) {
+            if (source == null || shouldForceHide(type)) {
                 int index = indexOf(toPublicType(type));
                 if (typeInsetsMap[index] == null) {
                     typeInsetsMap[index] = Insets.NONE;
@@ -515,6 +519,12 @@ public class InsetsState implements Parcelable {
         return mSources[type];
     }
 
+    public static boolean shouldForceHide(@InternalInsetsType int type) {
+        return (type == ITYPE_CLIMATE_BAR ||
+                type == ITYPE_STATUS_BAR) &&
+            (sWmContext != null ? SystemBarUtils.isImmersive(sWmContext) : false);
+    }
+
     /**
      * Returns the source visibility or the default visibility if the source doesn't exist. This is
      * useful if when treating this object as a request.
@@ -524,6 +534,8 @@ public class InsetsState implements Parcelable {
      *         doesn't exist.
      */
     public boolean getSourceOrDefaultVisibility(@InternalInsetsType int type) {
+        if (shouldForceHide(type))
+            return false;
         final InsetsSource source = mSources[type];
         return source != null ? source.isVisible() : getDefaultVisibility(type);
     }
@@ -784,6 +796,8 @@ public class InsetsState implements Parcelable {
     }
 
     public static boolean getDefaultVisibility(@InternalInsetsType int type) {
+        if (shouldForceHide(type))
+            return false;
         return type != ITYPE_IME;
     }
 

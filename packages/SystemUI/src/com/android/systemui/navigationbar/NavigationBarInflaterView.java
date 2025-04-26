@@ -39,6 +39,10 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.Space;
 
+import android.database.ContentObserver;
+import android.os.Handler;
+import android.provider.Settings;
+
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.systemui.Dependency;
 import com.android.systemui.R;
@@ -124,6 +128,17 @@ public class NavigationBarInflaterView extends FrameLayout
         createInflaters();
         mOverviewProxyService = Dependency.get(OverviewProxyService.class);
         mNavBarMode = Dependency.get(NavigationModeController.class).addListener(this);
+
+        context.getContentResolver().registerContentObserver(
+            Settings.Global.getUriFor(Settings.Global.POLICY_CONTROL),
+            false,
+            new ContentObserver(new Handler(context.getMainLooper())) {
+                @Override
+                public void onChange(boolean selfChange) {
+                    onLikelyDefaultLayoutChange();
+                }
+            }
+        );
     }
 
     @VisibleForTesting
@@ -160,10 +175,19 @@ public class NavigationBarInflaterView extends FrameLayout
                 : mOverviewProxyService.shouldShowSwipeUpUI()
                         ? R.string.config_navBarLayoutQuickstep
                         : R.string.config_navBarLayout;
+        String layout = getContext().getString(defaultResource);
         if (!mIsHintEnabled && defaultResource == R.string.config_navBarLayoutHandle) {
-            return getContext().getString(defaultResource).replace(HOME_HANDLE, "");
+            layout = layout.replace(HOME_HANDLE, "");
         }
-        return getContext().getString(defaultResource);
+
+        String policy = Settings.Global.getString(mContext.getContentResolver(), Settings.Global.POLICY_CONTROL);
+        if ("immersive.status=*".equals(policy)) {
+            layout = layout.replace(HOME, "")
+                           .replace(HOME_HANDLE, "")
+                           .replace(RECENT, "");
+        }
+
+        return layout;
     }
 
     @Override

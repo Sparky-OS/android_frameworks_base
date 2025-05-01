@@ -910,7 +910,7 @@ public class AppTransition implements Dump {
         }
         setAppTransitionFinishedCallbackIfNeeded(a);
 
-        return a;
+        return null;
     }
 
     int getAppRootTaskClipMode() {

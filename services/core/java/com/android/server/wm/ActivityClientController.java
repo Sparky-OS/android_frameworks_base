@@ -75,6 +75,7 @@ import android.os.Parcel;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.service.voice.VoiceInteractionManagerInternal;
@@ -1436,6 +1437,7 @@ class ActivityClientController extends IActivityClientController.Stub {
             final Intent baseActivityIntent;
             final boolean launchedFromHome;
             final boolean isLastRunningActivity;
+            final boolean isTaskRoot;
             synchronized (mGlobalLock) {
                 final ActivityRecord r = ActivityRecord.isInRootTaskLocked(token);
                 if (r == null) return;
@@ -1443,7 +1445,7 @@ class ActivityClientController extends IActivityClientController.Stub {
                 final Task task = r.getTask();
                 final ActivityRecord root = task.getRootActivity(false /*ignoreRelinquishIdentity*/,
                         true /*setToBottomIfNone*/);
-                final boolean isTaskRoot = r == root;
+                isTaskRoot = r == root;
                 if (isTaskRoot) {
                     if (mService.mWindowOrganizerController.mTaskOrganizerController
                         .handleInterceptBackPressedOnTaskRoot(r.getRootTask())) {
@@ -1463,6 +1465,11 @@ class ActivityClientController extends IActivityClientController.Stub {
                 baseActivityIntent = isBaseActivity ? root.intent : null;
 
                 launchedFromHome = root.isLaunchSourceType(ActivityRecord.LAUNCH_SOURCE_TYPE_HOME);
+            }
+
+            if  (isTaskRoot && !SystemProperties.get("waydroid.active_apps", "none").equals("Waydroid")) {
+                // Do not allow finishing a task by the back button except in full-ui mode
+                return;
             }
 
             // If the activity is one of the main entry points for the application, then we should

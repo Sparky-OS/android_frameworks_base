@@ -621,6 +621,26 @@ public final class MediaExtractor {
     private native Map<String, Object> getTrackFormatNative(int index);
 
     /**
+     * Returns metadata for the current sample, or {@code null} at end of stream.
+     * The returned format is a snapshot and does not advance the extractor.
+     * It contains sample-scoped fields only; use {@link #getTrackFormat} for track defaults.
+     * For laced stereo samples, the source Block identity, lace index and lace count
+     * accompany {@link MediaFormat#KEY_STEREO_LAYOUT}. Their scope is this data source
+     * and the track returned by {@link #getSampleTrackIndex}; they are not timestamps.
+     * Unknown or absent source metadata is not inferred.
+     *
+     * @return the current sample's metadata, or {@code null} if no sample remains
+     */
+    @Nullable
+    public MediaFormat getSampleFormat() {
+        Map<String, Object> map = getSampleFormatNative();
+        return map == null ? null : new MediaFormat(map);
+    }
+
+    @Nullable
+    private native Map<String, Object> getSampleFormatNative();
+
+    /**
      * Subsequent calls to {@link #readSampleData}, {@link #getSampleTrackIndex} and
      * {@link #getSampleTime} only retrieve information for the subset of tracks
      * selected.

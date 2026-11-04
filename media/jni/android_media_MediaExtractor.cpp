@@ -42,6 +42,7 @@
 #include <media/stagefright/InterfaceUtils.h>
 #include <media/stagefright/MediaErrors.h>
 #include <media/stagefright/MetaData.h>
+#include <media/stagefright/SampleMetadata.h>
 #include <media/stagefright/NuMediaExtractor.h>
 #include <nativehelper/ScopedLocalRef.h>
 
@@ -357,6 +358,31 @@ static jobject android_media_MediaExtractor_getTrackFormatNative(
         return NULL;
     }
 
+    return format;
+}
+
+static jobject android_media_MediaExtractor_getSampleFormatNative(JNIEnv *env, jobject thiz) {
+    sp<JMediaExtractor> extractor = getMediaExtractor(env, thiz);
+    if (extractor == nullptr) {
+        jniThrowException(env, "java/lang/IllegalStateException", nullptr);
+        return nullptr;
+    }
+    sp<MetaData> meta;
+    status_t err = extractor->getSampleMeta(&meta);
+    if (err == ERROR_END_OF_STREAM) return nullptr;
+    if (err != OK) {
+        jniThrowException(env, "java/lang/IllegalStateException", "Sample metadata unavailable");
+        return nullptr;
+    }
+    sp<AMessage> message = new AMessage;
+    convertSampleMetaDataToMessage(meta.get(), message);
+    size_t track;
+    if (extractor->getSampleTrackIndex(&track) == OK) message->setInt32("track-index", track);
+    jobject format;
+    if (ConvertMessageToMap(env, message, &format) != OK) {
+        jniThrowException(env, "java/lang/IllegalStateException", "Invalid sample metadata");
+        return nullptr;
+    }
     return format;
 }
 
@@ -942,6 +968,8 @@ android_media_MediaExtractor_native_setLogSessionId(
 }
 
 static const JNINativeMethod gMethods[] = {
+    { "getSampleFormatNative", "()Ljava/util/Map;",
+        (void *)android_media_MediaExtractor_getSampleFormatNative },
     { "release", "()V", (void *)android_media_MediaExtractor_release },
 
     { "getTrackCount", "()I", (void *)android_media_MediaExtractor_getTrackCount },

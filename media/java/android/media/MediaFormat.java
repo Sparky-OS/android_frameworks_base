@@ -332,6 +332,28 @@ public final class MediaFormat {
      */
     public static final String KEY_STEREO_VIEW_ORDER = "stereo-view-order";
 
+    /**
+     * Opaque nonnegative long identifying the Block containing a laced stereo sample.
+     * Present in {@link MediaExtractor#getSampleFormat} for laced-view sources.
+     * Its scope is the current data source and selected track, not presentation time.
+     * See Matroska RFC 9559 section 18.10.
+     */
+    public static final String KEY_STEREO_BLOCK_ID = "stereo-block-id";
+
+    /**
+     * Zero-based integer constituent index within {@link #KEY_STEREO_BLOCK_ID}.
+     * This is source order; {@link #KEY_STEREO_VIEW_ORDER} describes view membership.
+     */
+    public static final String KEY_STEREO_LACE_INDEX = "stereo-lace-index";
+
+    /**
+     * Integer count of actual constituents in {@link #KEY_STEREO_BLOCK_ID}.
+     * A valid laced stereo pair has two constituents. Incomplete or extra constituents
+     * are retained as observed, so the application can diagnose an invalid association.
+     */
+    public static final String KEY_STEREO_LACE_COUNT = "stereo-lace-count";
+
+
     /** An explicitly monoscopic source. */
     public static final int STEREO_LAYOUT_MONO = 0;
 

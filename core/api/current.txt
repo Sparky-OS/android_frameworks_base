@@ -22119,6 +22119,7 @@ package android.media {
     method @Nullable public java.util.Map<java.util.UUID,byte[]> getPsshInfo();
     method public boolean getSampleCryptoInfo(@NonNull android.media.MediaCodec.CryptoInfo);
     method public int getSampleFlags();
+    method @Nullable public android.media.MediaFormat getSampleFormat();
     method public long getSampleSize();
     method public long getSampleTime();
     method public int getSampleTrackIndex();
@@ -22281,6 +22282,9 @@ package android.media {
     field public static final String KEY_SAMPLE_RATE = "sample-rate";
     field public static final String KEY_SLICE_HEIGHT = "slice-height";
     field public static final String KEY_SLOW_MOTION_MARKERS = "slow-motion-markers";
+    field public static final String KEY_STEREO_BLOCK_ID = "stereo-block-id";
+    field public static final String KEY_STEREO_LACE_COUNT = "stereo-lace-count";
+    field public static final String KEY_STEREO_LACE_INDEX = "stereo-lace-index";
     field public static final String KEY_STEREO_LAYOUT = "stereo-layout";
     field public static final String KEY_STEREO_VIEW_ORDER = "stereo-view-order";
     field public static final String KEY_STRIDE = "stride";

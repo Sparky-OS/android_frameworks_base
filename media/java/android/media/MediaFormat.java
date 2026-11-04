@@ -304,6 +304,109 @@ public final class MediaFormat {
     public static final String KEY_MIME = "mime";
 
     /**
+     * Optional integer key describing the source video sample arrangement.
+     * The value is one of the {@code STEREO_LAYOUT_} constants. It does not select
+     * a display mode or imply a particular sample resolution.
+     * The vocabulary covers H.264 V16 Table D-9, H.265 V11 Tables D.8 and D.12,
+     * RFC 9559 Table 5 and the IANA Matroska stereo-mode assignments.
+     * Container-specific layout descriptors accompany custom and separate-view
+     * arrangements; the integer alone does not define their geometry.
+     *
+     * <p>Absence means no recognized applicable arrangement, not explicit mono.
+     * Unrecognized source values must not be mapped to a known arrangement.
+     * View order and source sampling or association descriptors are separate
+     * from the layout. A mixed-layout track may supply sample descriptors
+     * instead of one track-wide value.
+     *
+     * <p>For extractor formats this describes the source. For a codec output,
+     * consult {@link MediaCodec#getOutputFormat(int)} for the returned buffer;
+     * an output containing only one decoded view must not advertise a pair.
+     * A change, cancellation, flush or seek must not leave a stale arrangement.
+     */
+    public static final String KEY_STEREO_LAYOUT = "stereo-layout";
+
+    /**
+     * Optional integer key describing the association of constituent views.
+     * Its value is one of the {@code STEREO_VIEW_ORDER_} constants.
+     * The order is relative to the source arrangement, not a display output.
+     */
+    public static final String KEY_STEREO_VIEW_ORDER = "stereo-view-order";
+
+    /** An explicitly monoscopic source. */
+    public static final int STEREO_LAYOUT_MONO = 0;
+
+    /** Two constituent views stored horizontally in one picture. */
+    public static final int STEREO_LAYOUT_SIDE_BY_SIDE = 1;
+
+    /** Two constituent views stored vertically in one picture. */
+    public static final int STEREO_LAYOUT_TOP_BOTTOM = 2;
+
+    /** Constituent samples selected by alternating row and column parity. */
+    public static final int STEREO_LAYOUT_CHECKERBOARD = 3;
+
+    /** Constituent views stored in alternating columns. */
+    public static final int STEREO_LAYOUT_COLUMN_INTERLEAVED = 4;
+
+    /** Constituent views stored in alternating rows. */
+    public static final int STEREO_LAYOUT_ROW_INTERLEAVED = 5;
+
+    /** Constituent views stored in alternating output pictures. */
+    public static final int STEREO_LAYOUT_TEMPORAL_INTERLEAVED = 6;
+
+    /** The tiled arrangement defined by H.264 frame packing arrangement type 7. */
+    public static final int STEREO_LAYOUT_TILED = 7;
+
+    /** Cyan/red anaglyph components, with the source channel loss preserved. */
+    public static final int STEREO_LAYOUT_ANAGLYPH_CYAN_RED = 8;
+
+    /** Green/magenta anaglyph components, with the source channel loss preserved. */
+    public static final int STEREO_LAYOUT_ANAGLYPH_GREEN_MAGENTA = 9;
+
+    /** Constituent pictures associated by a container block and lace index. */
+    public static final int STEREO_LAYOUT_LACED_VIEWS = 10;
+
+    /** Distinct coded views requiring explicit track or layer association. */
+    public static final int STEREO_LAYOUT_SEPARATE_VIEWS = 11;
+
+    /** A picture and its depth samples stored horizontally. */
+    public static final int STEREO_LAYOUT_PICTURE_DEPTH_SIDE_BY_SIDE = 12;
+
+    /** A picture and its depth samples stored vertically. */
+    public static final int STEREO_LAYOUT_PICTURE_DEPTH_TOP_BOTTOM = 13;
+
+    /** Picture, depth, graphics and graphics depth in four vertical regions. */
+    public static final int STEREO_LAYOUT_PICTURE_DEPTH_GRAPHICS = 14;
+
+    /** Picture, picture depth, background and background depth in four quarters. */
+    public static final int STEREO_LAYOUT_PICTURE_DEPTH_BACKGROUND = 15;
+
+    /** Separate coded picture and depth planes with explicit associations. */
+    public static final int STEREO_LAYOUT_SEPARATE_DEPTH = 16;
+
+    /** A source-defined arrangement requiring its accompanying layout descriptor. */
+    public static final int STEREO_LAYOUT_CUSTOM = 17;
+
+    /** The five-region arrangement defined by H.265 segmented rectangular packing. */
+    public static final int STEREO_LAYOUT_SEGMENTED_RECTANGULAR = 18;
+
+    /** No constituent relationship is specified. */
+    public static final int STEREO_VIEW_ORDER_UNSPECIFIED = 0;
+
+    /** The first constituent is the left view. */
+    public static final int STEREO_VIEW_ORDER_LEFT_FIRST = 1;
+
+    /** The first constituent is the right view. */
+    public static final int STEREO_VIEW_ORDER_RIGHT_FIRST = 2;
+
+    /** The first constituent is the picture and the second is depth. */
+    public static final int STEREO_VIEW_ORDER_PICTURE_FIRST = 3;
+
+    /** The first constituent is depth and the second is the picture. */
+    public static final int STEREO_VIEW_ORDER_DEPTH_FIRST = 4;
+
+
+
+    /**
      * A key describing the codecs string of the MediaFormat. See RFC 6381 section 3.2 for the
      * syntax of the value. The value does not hold {@link MediaCodec}-exposed codec names.
      * The associated value is a string.

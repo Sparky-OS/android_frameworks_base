@@ -1158,6 +1158,7 @@ public class SurfaceView extends View implements ViewRootImpl.SurfaceChangedCall
                 mSurface.transferFrom(mBlastBufferQueue.createSurfaceWithHandle());
             }
         }
+        ((LegacyS3DSurfaceHolder) mSurfaceHolder).applyStereoLayout();
     }
 
     private void setBufferSize(Transaction transaction) {
@@ -1460,7 +1461,7 @@ public class SurfaceView extends View implements ViewRootImpl.SurfaceChangedCall
     }
 
     @UnsupportedAppUsage
-    private final SurfaceHolder mSurfaceHolder = new SurfaceHolder() {
+    private final SurfaceHolder mSurfaceHolder = new LegacyS3DSurfaceHolder() {
         private static final String LOG_TAG = "SurfaceHolder";
 
         @Override

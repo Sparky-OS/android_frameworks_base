@@ -67,6 +67,7 @@ public class Surface implements Parcelable {
             throws OutOfResourcesException;
 
     private static native long nativeCreateFromSurfaceControl(long surfaceControlNativeObject);
+    private static native boolean nativeSetLegacyStereoLayout(long nativeObject, int layout);
     private static native long nativeGetFromSurfaceControl(long surfaceObject,
             long surfaceControlNativeObject);
     private static native long nativeGetFromBlastBufferQueue(long surfaceObject,
@@ -266,6 +267,20 @@ public class Surface implements Parcelable {
      */
     public Surface(@NonNull SurfaceControl from) {
         copyFrom(from);
+    }
+
+    /**
+     * Set the legacy vendor input packing on this producer's buffer layer.
+     * @hide
+     */
+    public boolean setLegacyStereoLayout(int layout) {
+        synchronized (mLock) {
+            if (mNativeObject == 0) {
+                Log.e("LegacyStereo", "Stereo layout rejected: Surface has been released");
+                return false;
+            }
+            return nativeSetLegacyStereoLayout(mNativeObject, layout);
+        }
     }
 
     /**

@@ -1,0 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+java_library {
+    name: "com.lge.real3d",
+    srcs: ["real3d/src/**/*.java"],
+    libs: ["framework"],
+    installable: true,
+}

@@ -35,6 +35,8 @@
 #include <gui/BLASTBufferQueue.h>
 #include <gui/Surface.h>
 #include <gui/SurfaceControl.h>
+#include <gui/SurfaceComposerClient.h>
+#include <gui/LayerMetadata.h>
 #include <gui/view/Surface.h>
 
 #include <ui/GraphicBuffer.h>
@@ -402,6 +404,31 @@ static jlong nativeGetNextFrameNumber(JNIEnv *env, jclass clazz, jlong nativeObj
     return surface->getNextFrameNumber();
 }
 
+static jboolean nativeSetLegacyStereoLayout(JNIEnv*, jclass, jlong nativeObject, jint layout) {
+    sp<Surface> surface(reinterpret_cast<Surface*>(nativeObject));
+    const auto handle = surface->getSurfaceControlHandle();
+    if (handle == nullptr) {
+        ALOGE("LegacyStereo: Surface has no buffer-layer handle; layout rejected");
+        return JNI_FALSE;
+    }
+    if (layout < 0 || layout > 22) {
+        ALOGE("LegacyStereo: unknown input layout %d; declaration cleared", layout);
+        layout = 0;
+    }
+    // BLAST and Surface parceling already carry this producer's layer handle.
+    sp<SurfaceControl> control = new SurfaceControl(SurfaceComposerClient::getDefault(),
+                                                   handle, nullptr, -1);
+    Parcel value;
+    if (layout != 0) value.writeInt32(layout);
+    const auto status = SurfaceComposerClient::Transaction()
+                                .setMetadata(control, METADATA_STEREO_LAYOUT, value).apply();
+    if (status != NO_ERROR) {
+        ALOGE("LegacyStereo: buffer-layer metadata transaction failed: %d", status);
+        return JNI_FALSE;
+    }
+    return JNI_TRUE;
+}
+
 static jint nativeSetScalingMode(JNIEnv *env, jclass clazz, jlong nativeObject, jint scalingMode) {
     Surface* surface = reinterpret_cast<Surface*>(nativeObject);
     return surface->setScalingMode(scalingMode);
@@ -475,6 +502,7 @@ static const JNINativeMethod gSurfaceMethods[] = {
         {"nativeGetHeight", "(J)I", (void*)nativeGetHeight},
         {"nativeGetNextFrameNumber", "(J)J", (void*)nativeGetNextFrameNumber},
         {"nativeSetScalingMode", "(JI)I", (void*)nativeSetScalingMode},
+        {"nativeSetLegacyStereoLayout", "(JI)Z", (void*)nativeSetLegacyStereoLayout},
         {"nativeForceScopedDisconnect", "(J)I", (void*)nativeForceScopedDisconnect},
         {"nativeAttachAndQueueBufferWithColorSpace", "(JLandroid/hardware/HardwareBuffer;I)I",
          (void*)nativeAttachAndQueueBufferWithColorSpace},

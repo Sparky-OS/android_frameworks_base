@@ -7,5 +7,5 @@ public class Real3DConstant {
 
     public Real3DConstant() {}
 
-    public static int getReal3DHotKeyVal() { return 206; }
+    public static final int getReal3DHotKeyVal() { return 206; }
 }

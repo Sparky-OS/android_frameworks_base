@@ -404,7 +404,8 @@ static jlong nativeGetNextFrameNumber(JNIEnv *env, jclass clazz, jlong nativeObj
     return surface->getNextFrameNumber();
 }
 
-static jboolean nativeSetLegacyStereoLayout(JNIEnv*, jclass, jlong nativeObject, jint layout) {
+static jboolean nativeSetLegacyStereoLayout(JNIEnv*, jclass, jlong nativeObject,
+                                            jlong blastBufferQueueNativeObject, jint layout) {
     sp<Surface> surface(reinterpret_cast<Surface*>(nativeObject));
     const auto handle = surface->getSurfaceControlHandle();
     if (handle == nullptr) {
@@ -415,18 +416,45 @@ static jboolean nativeSetLegacyStereoLayout(JNIEnv*, jclass, jlong nativeObject,
         ALOGE("LegacyStereo: unknown input layout %d; declaration cleared", layout);
         layout = 0;
     }
+    sp<BLASTBufferQueue> queue = reinterpret_cast<BLASTBufferQueue*>(blastBufferQueueNativeObject);
+    bool accepted = true;
+    if (queue != nullptr && IInterface::asBinder(queue->getIGraphicBufferProducer()) !=
+            IInterface::asBinder(surface->getIGraphicBufferProducer())) {
+        ALOGE("LegacyStereo: buffer queue does not belong to this Surface; declaration cleared");
+        queue = nullptr;
+        layout = 0;
+        accepted = false;
+    }
+    if (queue == nullptr && layout >= 2) {
+        ALOGE("LegacyStereo: Surface has no local BLAST queue for buffer-scoped packing; "
+              "declaration cleared");
+        layout = 0;
+        accepted = false;
+    }
     // BLAST and Surface parceling already carry this producer's layer handle.
     sp<SurfaceControl> control = new SurfaceControl(SurfaceComposerClient::getDefault(),
                                                    handle, nullptr, -1);
     Parcel value;
-    if (layout != 0) value.writeInt32(layout);
-    const auto status = SurfaceComposerClient::Transaction()
-                                .setMetadata(control, METADATA_STEREO_LAYOUT, value).apply();
+    if (layout != 0 && value.writeInt32(layout) != NO_ERROR) {
+        ALOGE("LegacyStereo: could not encode input layout");
+        return JNI_FALSE;
+    }
+    SurfaceComposerClient::Transaction transaction;
+    transaction.setMetadata(control, METADATA_STEREO_LAYOUT, value);
+    if (queue != nullptr) {
+        // Keep the new packing with the first buffer drawn after the request.
+        const auto frameNumber = surface->getNextFrameNumber();
+        queue->mergeWithNextTransaction(&transaction, frameNumber);
+        // Clear now, including older queued requests, even if no new frame is drawn.
+        if (layout < 2) queue->applyPendingTransactions(frameNumber);
+        return accepted ? JNI_TRUE : JNI_FALSE;
+    }
+    const auto status = transaction.apply();
     if (status != NO_ERROR) {
         ALOGE("LegacyStereo: buffer-layer metadata transaction failed: %d", status);
         return JNI_FALSE;
     }
-    return JNI_TRUE;
+    return accepted ? JNI_TRUE : JNI_FALSE;
 }
 
 static jint nativeSetScalingMode(JNIEnv *env, jclass clazz, jlong nativeObject, jint scalingMode) {
@@ -502,7 +530,7 @@ static const JNINativeMethod gSurfaceMethods[] = {
         {"nativeGetHeight", "(J)I", (void*)nativeGetHeight},
         {"nativeGetNextFrameNumber", "(J)J", (void*)nativeGetNextFrameNumber},
         {"nativeSetScalingMode", "(JI)I", (void*)nativeSetScalingMode},
-        {"nativeSetLegacyStereoLayout", "(JI)Z", (void*)nativeSetLegacyStereoLayout},
+        {"nativeSetLegacyStereoLayout", "(JJI)Z", (void*)nativeSetLegacyStereoLayout},
         {"nativeForceScopedDisconnect", "(J)I", (void*)nativeForceScopedDisconnect},
         {"nativeAttachAndQueueBufferWithColorSpace", "(JLandroid/hardware/HardwareBuffer;I)I",
          (void*)nativeAttachAndQueueBufferWithColorSpace},

@@ -67,7 +67,8 @@ public class Surface implements Parcelable {
             throws OutOfResourcesException;
 
     private static native long nativeCreateFromSurfaceControl(long surfaceControlNativeObject);
-    private static native boolean nativeSetLegacyStereoLayout(long nativeObject, int layout);
+    private static native boolean nativeSetLegacyStereoLayout(long nativeObject,
+            long blastBufferQueueNativeObject, int layout);
     private static native long nativeGetFromSurfaceControl(long surfaceObject,
             long surfaceControlNativeObject);
     private static native long nativeGetFromBlastBufferQueue(long surfaceObject,
@@ -131,6 +132,8 @@ public class Surface implements Parcelable {
     private String mName;
     @UnsupportedAppUsage
     long mNativeObject; // package scope only for SurfaceControl access
+    // Local producer ownership is not serialized with a Surface.
+    private BLASTBufferQueue mLegacyStereoBufferQueue;
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
     private long mLockedObject;
     private int mGenerationId; // incremented each time mNativeObject changes
@@ -279,7 +282,15 @@ public class Surface implements Parcelable {
                 Log.e("LegacyStereo", "Stereo layout rejected: Surface has been released");
                 return false;
             }
-            return nativeSetLegacyStereoLayout(mNativeObject, layout);
+            return nativeSetLegacyStereoLayout(mNativeObject,
+                    mLegacyStereoBufferQueue == null ? 0 : mLegacyStereoBufferQueue.mNativeObject,
+                    layout);
+        }
+    }
+
+    void setLegacyStereoBufferQueue(BLASTBufferQueue queue) {
+        synchronized (mLock) {
+            mLegacyStereoBufferQueue = queue;
         }
     }
 
@@ -657,8 +668,11 @@ public class Surface implements Parcelable {
         if (blastBufferQueuePtr == 0) {
             throw new NullPointerException("Null BLASTBufferQueue native object");
         }
-        long newNativeObject = nativeGetFromBlastBufferQueue(mNativeObject, blastBufferQueuePtr);
-        updateNativeObject(newNativeObject);
+        synchronized (mLock) {
+            long newNativeObject = nativeGetFromBlastBufferQueue(mNativeObject, blastBufferQueuePtr);
+            updateNativeObject(newNativeObject);
+            mLegacyStereoBufferQueue = queue;
+        }
     }
 
     /**
@@ -707,8 +721,10 @@ public class Surface implements Parcelable {
         }
         if (other != this) {
             final long newPtr;
+            final BLASTBufferQueue queue;
             synchronized (other.mLock) {
                 newPtr = other.mNativeObject;
+                queue = other.mLegacyStereoBufferQueue;
                 other.setNativeObjectLocked(0);
             }
 
@@ -717,6 +733,7 @@ public class Surface implements Parcelable {
                     nativeRelease(mNativeObject);
                 }
                 setNativeObjectLocked(newPtr);
+                mLegacyStereoBufferQueue = queue;
             }
         }
     }
@@ -771,6 +788,7 @@ public class Surface implements Parcelable {
 
     private void setNativeObjectLocked(long ptr) {
         if (mNativeObject != ptr) {
+            mLegacyStereoBufferQueue = null;
             if (mNativeObject == 0 && ptr != 0) {
                 mCloseGuard.open("Surface.release");
             } else if (mNativeObject != 0 && ptr == 0) {

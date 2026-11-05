@@ -1158,6 +1158,7 @@ public class SurfaceView extends View implements ViewRootImpl.SurfaceChangedCall
                 mSurface.transferFrom(mBlastBufferQueue.createSurfaceWithHandle());
             }
         }
+        mSurface.setLegacyStereoBufferQueue(mBlastBufferQueue);
         ((LegacyS3DSurfaceHolder) mSurfaceHolder).applyStereoLayout();
     }
 

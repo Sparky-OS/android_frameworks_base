@@ -1,18 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 package com.htc.view;
 
+import android.compat.annotation.UnsupportedAppUsage;
 import android.util.Log;
 import android.view.Surface;
 
 /** HTC OpenSense Surface ABI. @hide */
 public class DisplaySetting {
+    @UnsupportedAppUsage
     public static final int STEREOSCOPIC_3D_FORMAT_OFF = 0;
+    @UnsupportedAppUsage
     public static final int STEREOSCOPIC_3D_FORMAT_SIDE_BY_SIDE = 1;
+    @UnsupportedAppUsage
     public static final int STEREOSCOPIC_3D_FORMAT_TOP_BOTTOM = 2;
+    @UnsupportedAppUsage
     public static final int STEREOSCOPIC_3D_FORMAT_INTERLEAVED = 3;
 
+    @UnsupportedAppUsage
     public DisplaySetting() {}
 
+    @UnsupportedAppUsage
     public static boolean setStereoscopic3DFormat(Surface surface, int format) {
         if (surface == null) {
             Log.e("LegacyStereo", "HTC request has no Surface");

@@ -35,7 +35,8 @@ final class LegacyGadmeiStereo {
         DisplayContent display = mService.mRoot.getTopFocusedDisplayContent();
         if (display == null) return;
         WindowState focus = display.mCurrentFocus;
-        Task task = focus == null ? null : focus.getTask();
+        if (focus == null) return;
+        Task task = focus.getTask();
         if (focus != null && ACTIVATOR.equals(focus.getOwningPackage())) return;
         if (task == mForeground) return;
         if (mEnabled) Slog.i("LegacyStereo", "Gadmei withdrawal: foreground task changed");
@@ -62,10 +63,10 @@ final class LegacyGadmeiStereo {
         if ("/sys/class/ppmgr/ppmgr_3d_mode".equals(path)) {
             switch (command) {
                 case "0": enable = false; break;
-                case "257": packing = 2; break;
-                case "513": packing = 4; break;
-                case "1281": packing = 3; break;
-                case "1537": packing = 5; break;
+                case "257": packing = 2; enable = true; break;
+                case "513": packing = 4; enable = true; break;
+                case "1281": packing = 3; enable = true; break;
+                case "1537": packing = 5; enable = true; break;
                 default: return refuse("unsupported packing " + command);
             }
         } else if ("/sys/class/enable3d/enable-3d".equals(path)) {
@@ -98,7 +99,7 @@ final class LegacyGadmeiStereo {
 
     void update(WindowState window, SurfaceControl surface, int id, int kind) {
         if (!LegacyGadmeiClient.enabled() || window.getTask() == null || id < 0
-                || kind < 0 || kind > 2) {
+                || kind < 0 || kind > 3) {
             if (surface != null) surface.release();
             return;
         }

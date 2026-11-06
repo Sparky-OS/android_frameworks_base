@@ -3,7 +3,7 @@ package android.app;
 
 import android.system.ErrnoException;
 import android.system.OsConstants;
-import android.util.ArrayMap;
+import android.util.SparseArray;
 import android.view.LegacyGadmeiClient;
 
 import java.io.FileDescriptor;
@@ -16,7 +16,7 @@ import libcore.io.Os;
 
 /** Intercept only the family's three Java file endpoints, never host sysfs. */
 final class LegacyGadmeiOs extends ForwardingOs {
-    private final ArrayMap<FileDescriptor, String> mControls = new ArrayMap<>();
+    private final SparseArray<String> mControls = new SparseArray<>();
 
     private LegacyGadmeiOs(Os os) { super(os); }
 
@@ -39,18 +39,18 @@ final class LegacyGadmeiOs extends ForwardingOs {
         if (!LegacyGadmeiClient.isControl(path)) return super.open(path, flags, mode);
         FileDescriptor fd = super.open("/dev/null",
                 (flags & OsConstants.O_ACCMODE) | OsConstants.O_CLOEXEC, 0);
-        synchronized (mControls) { mControls.put(fd, path); }
+        synchronized (mControls) { mControls.put(fd.getInt$(), path); }
         return fd;
     }
 
     @Override
     public void close(FileDescriptor fd) throws ErrnoException {
-        synchronized (mControls) { mControls.remove(fd); }
+        synchronized (mControls) { mControls.remove(fd.getInt$()); }
         super.close(fd);
     }
 
     private String control(FileDescriptor fd) {
-        synchronized (mControls) { return mControls.get(fd); }
+        synchronized (mControls) { return mControls.get(fd.getInt$()); }
     }
 
     @Override
@@ -61,6 +61,7 @@ final class LegacyGadmeiOs extends ForwardingOs {
         if (offset < 0 || count < 0 || offset > bytes.length - count) {
             throw new ArrayIndexOutOfBoundsException();
         }
+        if (!fd.valid()) throw new ErrnoException("Gadmei closed control", OsConstants.EBADF);
         if (count == 0) return 0;
         if (count > 64) {
             android.util.Log.e("LegacyStereo", "Gadmei family write refused: oversized command");

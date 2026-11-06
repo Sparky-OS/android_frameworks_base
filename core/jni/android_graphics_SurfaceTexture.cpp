@@ -26,6 +26,7 @@
 
 #include <gui/BufferQueue.h>
 #include <gui/Surface.h>
+#include <android_runtime/android_view_Surface.h>
 #include <surfacetexture/SurfaceTexture.h>
 #include <surfacetexture/surface_texture_platform.h>
 
@@ -129,6 +130,20 @@ sp<SurfaceTexture> SurfaceTexture_getSurfaceTexture(JNIEnv* env, jobject thiz) {
 }
 
 sp<IGraphicBufferProducer> SurfaceTexture_getProducer(JNIEnv* env, jobject thiz) {
+    ScopedLocalRef<jclass> routes(env, FindClassOrDie(env, "android/view/LegacyGadmeiTexture"));
+    jmethodID create = GetStaticMethodIDOrDie(env, routes.get(), "createSurface",
+            "(Landroid/graphics/SurfaceTexture;)Landroid/view/Surface;");
+    ScopedLocalRef<jobject> routed(env, env->CallStaticObjectMethod(routes.get(), create, thiz));
+    if (env->ExceptionCheck()) return nullptr;
+    if (routed.get() != nullptr) {
+        sp<Surface> surface = android_view_Surface_getSurface(env, routed.get());
+        sp<IGraphicBufferProducer> producer = surface == nullptr ? nullptr
+                : surface->getIGraphicBufferProducer();
+        ScopedLocalRef<jclass> surfaceClass(env, env->GetObjectClass(routed.get()));
+        env->CallVoidMethod(routed.get(),
+                GetMethodIDOrDie(env, surfaceClass.get(), "release", "()V"));
+        return producer;
+    }
     return (IGraphicBufferProducer*)env->GetLongField(thiz, fields.producer);
 }
 

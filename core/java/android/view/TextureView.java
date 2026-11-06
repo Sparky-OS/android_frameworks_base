@@ -178,6 +178,7 @@ public class TextureView extends View {
     @UnsupportedAppUsage
     private SurfaceTexture mSurface;
     private LegacyGadmeiTexture mGadmeiTexture;
+    private boolean mGadmeiExternal;
     private SurfaceTextureListener mListener;
     private boolean mHadSurface;
 
@@ -487,7 +488,7 @@ public class TextureView extends View {
             mSurface.setDefaultBufferSize(getWidth(), getHeight());
             mSurface.setOnFrameAvailableListener(mUpdateListener, mAttachInfo.mHandler);
 
-            if (LegacyGadmeiClient.enabled() && mGadmeiTexture == null) {
+            if (LegacyGadmeiClient.enabled() && !mGadmeiExternal && mGadmeiTexture == null) {
                 mGadmeiTexture = new LegacyGadmeiTexture(this, mSurface);
             }
             if (mListener != null && createNewSurface) {
@@ -859,6 +860,11 @@ public class TextureView extends View {
         if (surfaceTexture.isReleased()) {
             throw new IllegalArgumentException("Cannot setSurfaceTexture to a " +
                     "released SurfaceTexture");
+        }
+        if (LegacyGadmeiClient.enabled()) {
+            mGadmeiExternal = true;
+            if (mGadmeiTexture != null) { mGadmeiTexture.close(); mGadmeiTexture = null; }
+            Log.e("LegacyStereo", "Gadmei externally supplied TextureView producer has no verified stereo mapping; ordinary 2D retained");
         }
         if (mSurface != null) {
             nDestroyNativeWindow();

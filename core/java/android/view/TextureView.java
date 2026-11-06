@@ -179,6 +179,37 @@ public class TextureView extends View {
     private SurfaceTexture mSurface;
     private LegacyGadmeiTexture mGadmeiTexture;
     private boolean mGadmeiExternal;
+    private boolean mGadmeiStereo;
+
+    void setGadmeiStereo(boolean enabled) {
+        if (mGadmeiStereo == enabled) return;
+        if (enabled && mGadmeiExternal) {
+            Log.e("LegacyStereo", "Gadmei retained/external TextureView producer cannot be recreated; ordinary 2D retained");
+            return;
+        }
+        if (mSurface != null && mListener != null
+                && !mListener.onSurfaceTextureDestroyed(mSurface)) {
+            mGadmeiExternal = true;
+            if (mGadmeiTexture != null) mGadmeiTexture.refuseRetainedProducer();
+            Log.e("LegacyStereo", "Gadmei TextureView listener retained its producer; stereo request cannot replace it");
+            return;
+        }
+        destroyHardwareLayer();
+        if (mGadmeiTexture != null) { mGadmeiTexture.close(); mGadmeiTexture = null; }
+        if (mSurface != null) {
+            synchronized (mNativeWindowLock) { nDestroyNativeWindow(); }
+            mSurface.release();
+            mSurface = null;
+        }
+        mGadmeiStereo = enabled;
+        if (mParent != null) mParent.requestTransparentRegion(this);
+        invalidate(true);
+    }
+
+    void gadmeiFrameUpdated(SurfaceTexture texture) {
+        if (mSurface == texture && mListener != null) mListener.onSurfaceTextureUpdated(texture);
+    }
+
     private SurfaceTextureListener mListener;
     private boolean mHadSurface;
 
@@ -278,8 +309,8 @@ public class TextureView extends View {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        if (LegacyGadmeiClient.enabled() && mParent != null) {
-            mParent.requestTransparentRegion(this);
+        if (LegacyGadmeiClient.enabled() && getViewRootImpl() != null) {
+            setGadmeiStereo(getViewRootImpl().mLegacyGadmeiTextureEnabled);
         }
 
         if (!isHardwareAccelerated()) {
@@ -411,7 +442,7 @@ public class TextureView extends View {
      */
     @Override
     public boolean gatherTransparentRegion(android.graphics.Region region) {
-        if (!LegacyGadmeiClient.enabled()) return super.gatherTransparentRegion(region);
+        if (mGadmeiTexture == null) return super.gatherTransparentRegion(region);
         if (region != null) {
             int[] location = new int[2];
             getLocationInWindow(location);
@@ -488,7 +519,7 @@ public class TextureView extends View {
             mSurface.setDefaultBufferSize(getWidth(), getHeight());
             mSurface.setOnFrameAvailableListener(mUpdateListener, mAttachInfo.mHandler);
 
-            if (LegacyGadmeiClient.enabled() && !mGadmeiExternal && mGadmeiTexture == null) {
+            if (mGadmeiStereo && !mGadmeiExternal && mGadmeiTexture == null) {
                 mGadmeiTexture = new LegacyGadmeiTexture(this, mSurface);
             }
             if (mListener != null && createNewSurface) {
@@ -864,7 +895,7 @@ public class TextureView extends View {
         if (LegacyGadmeiClient.enabled()) {
             mGadmeiExternal = true;
             if (mGadmeiTexture != null) { mGadmeiTexture.close(); mGadmeiTexture = null; }
-            Log.e("LegacyStereo", "Gadmei externally supplied TextureView producer has no verified stereo mapping; ordinary 2D retained");
+            if (mGadmeiStereo) Log.e("LegacyStereo", "Gadmei externally supplied TextureView producer has no verified stereo mapping; ordinary 2D retained");
         }
         if (mSurface != null) {
             nDestroyNativeWindow();

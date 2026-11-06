@@ -338,6 +338,8 @@ public class SystemWindows {
     }
 
     static class ContainerWindow extends IWindow.Stub {
+        @Override
+        public void dispatchLegacyGadmeiStereo(boolean enabled) {}
         ContainerWindow() {}
 
         @Override

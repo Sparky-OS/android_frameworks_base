@@ -4483,6 +4483,7 @@ public final class ViewRootImpl implements ViewParent,
         });
     }
 
+    boolean mLegacyGadmeiTextureEnabled;
     private int mLegacyGadmeiMainId = -1;
     private int mLegacyGadmeiMainKind = -1;
 
@@ -10331,6 +10332,15 @@ public final class ViewRootImpl implements ViewParent,
     }
 
     static class W extends IWindow.Stub {
+        @Override
+        public void dispatchLegacyGadmeiStereo(boolean enabled) {
+            ViewRootImpl root = mViewAncestor.get();
+            if (root != null) root.mHandler.post(() -> {
+                root.mLegacyGadmeiTextureEnabled = enabled;
+                LegacyGadmeiClient.updateTextures(root.mView, enabled);
+            });
+        }
+
         private final WeakReference<ViewRootImpl> mViewAncestor;
         private final IWindowSession mWindowSession;
 

@@ -23,6 +23,8 @@ public final class LegacyGadmeiTexture {
     private int mWidth;
     private int mHeight;
     private int mKind = 1;
+    private boolean mRefused;
+    private volatile boolean mClosed;
     private static android.os.Handler sCopyHandler;
 
     private static synchronized android.os.Handler copyHandler() {
@@ -63,6 +65,7 @@ public final class LegacyGadmeiTexture {
         mQueue = new BLASTBufferQueue("GadmeiTextureView", false);
         mQueue.update(mControl, mWidth, mHeight, PixelFormat.RGBA_8888);
         mSurface = mQueue.createSurfaceWithHandle();
+        armFrameCallback();
         synchronized (ROUTES) { ROUTES.put(texture, new WeakReference<>(this)); }
         LegacyGadmeiClient.register(mRoot, mControl, 1);
         updateGeometry();
@@ -91,13 +94,31 @@ public final class LegacyGadmeiTexture {
 
     Surface surface() { return mSurface; }
 
+    private synchronized void armFrameCallback() {
+        if (mClosed) return;
+        mQueue.syncNextTransaction(transaction -> {
+            transaction.addTransactionCommittedListener(command -> mView.post(command),
+                    () -> { if (!mClosed) mView.gadmeiFrameUpdated(mTexture); });
+            transaction.apply();
+            transaction.close();
+            armFrameCallback();
+        });
+    }
+
+    void refuseRetainedProducer() {
+        mRefused = true;
+        mKind = 3;
+        LegacyGadmeiClient.register(mRoot, mControl, 3);
+    }
+
+
     void updateGeometry() {
         if (!mRoot.getSurfaceControl().isValid()) return;
         int[] location = new int[2];
         mView.getLocationInWindow(location);
         android.graphics.Matrix image = mView.getTransform(new android.graphics.Matrix());
         android.graphics.Matrix placement = mView.getMatrix();
-        int kind = image.isIdentity() && placement.isIdentity() ? 1 : 3;
+        int kind = !mRefused && image.isIdentity() && placement.isIdentity() ? 1 : 3;
         if (kind != mKind) {
             if (kind == 3) android.util.Log.e("LegacyStereo",
                     "Gadmei TextureView transform has no verified stereo mapping; declaration withdrawn");
@@ -125,7 +146,9 @@ public final class LegacyGadmeiTexture {
         }
     }
 
-    void close() {
+    synchronized void close() {
+        mClosed = true;
+        mQueue.syncNextTransaction(null);
         synchronized (ROUTES) { ROUTES.remove(mTexture); }
         LegacyGadmeiClient.unregister(mRoot, mControl.getLayerId());
         try (SurfaceControl.Transaction transaction = new SurfaceControl.Transaction()) {

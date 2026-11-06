@@ -155,4 +155,6 @@ public class BaseIWindow extends IWindow.Stub {
             // ignore
         }
     }
+    @Override
+    public void dispatchLegacyGadmeiStereo(boolean enabled) {}
 }

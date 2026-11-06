@@ -119,4 +119,5 @@ oneway interface IWindow {
      * @param callbacks to receive responses
      */
     void requestScrollCapture(in IScrollCaptureResponseListener callbacks);
+    void dispatchLegacyGadmeiStereo(boolean enabled);
 }

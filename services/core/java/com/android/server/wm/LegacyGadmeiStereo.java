@@ -16,6 +16,7 @@ final class LegacyGadmeiStereo {
     private static final String ACTIVATOR = "fr.stereoscopie.gadmei3d";
     private final WindowManagerService mService;
     private final ArrayMap<WindowState, SparseArray<Drawing>> mDrawings = new ArrayMap<>();
+    private final ArrayMap<WindowState, Boolean> mTextureModes = new ArrayMap<>();
     private Task mForeground;
     private Task mOwner;
     private int mPacking = 8;
@@ -122,6 +123,7 @@ final class LegacyGadmeiStereo {
     }
 
     void remove(WindowState window) {
+        mTextureModes.remove(window);
         SparseArray<Drawing> drawings = mDrawings.remove(window);
         if (drawings == null) return;
         for (int i = 0; i < drawings.size(); i++) {
@@ -154,6 +156,15 @@ final class LegacyGadmeiStereo {
         }
         for (int i = 0; i < mDrawings.size(); i++) {
             WindowState window = mDrawings.keyAt(i);
+            boolean textureMode = mEnabled && window.getTask() == mOwner;
+            Boolean previousMode = mTextureModes.get(window);
+            if (previousMode == null || previousMode != textureMode) {
+                mTextureModes.put(window, textureMode);
+                try { window.mClient.dispatchLegacyGadmeiStereo(textureMode); }
+                catch (android.os.RemoteException e) {
+                    Slog.w("LegacyStereo", "Gadmei producer-mode callback unavailable", e);
+                }
+            }
             SparseArray<Drawing> rows = mDrawings.valueAt(i);
             for (int j = 0; j < rows.size(); j++) {
                 Drawing drawing = rows.valueAt(j);

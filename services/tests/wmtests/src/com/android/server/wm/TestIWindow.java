@@ -33,6 +33,8 @@ import com.android.internal.os.IResultReceiver;
 import java.util.ArrayList;
 
 public class TestIWindow extends IWindow.Stub {
+    @Override
+    public void dispatchLegacyGadmeiStereo(boolean enabled) {}
 
     private ArrayList<DragEvent> mDragEvents;
 

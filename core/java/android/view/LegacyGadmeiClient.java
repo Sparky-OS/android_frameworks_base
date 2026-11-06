@@ -28,6 +28,14 @@ public final class LegacyGadmeiClient {
         }
     }
 
+    static void updateTextures(View view, boolean enabled) {
+        if (view instanceof TextureView) ((TextureView) view).setGadmeiStereo(enabled);
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) updateTextures(group.getChildAt(i), enabled);
+        }
+    }
+
     static boolean hasMedia(View view) {
         if (view == null || view.getVisibility() != View.VISIBLE) return false;
         if (view instanceof SurfaceView || view instanceof TextureView) return true;

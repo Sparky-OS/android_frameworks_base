@@ -2099,7 +2099,10 @@ public class WindowManagerService extends IWindowManager.Stub
      * figure-out a good way to have all parents of a WindowState doing the same thing without
      * forgetting to add the wiring when a new parent of WindowState is added.
      */
+    final LegacyGadmeiStereo mLegacyGadmeiStereo = new LegacyGadmeiStereo(this);
+
     void postWindowRemoveCleanupLocked(WindowState win) {
+        mLegacyGadmeiStereo.remove(win);
         ProtoLog.v(WM_DEBUG_ADD_REMOVE, "postWindowRemoveCleanupLocked: %s", win);
         mWindowMap.remove(win.mClient.asBinder());
 
@@ -6177,6 +6180,7 @@ public class WindowManagerService extends IWindowManager.Stub
     boolean updateFocusedWindowLocked(int mode, boolean updateInputWindows) {
         Trace.traceBegin(TRACE_TAG_WINDOW_MANAGER, "wmUpdateFocus");
         boolean changed = mRoot.updateFocusedWindowLocked(mode, updateInputWindows);
+        mLegacyGadmeiStereo.focusChanged();
         Trace.traceEnd(TRACE_TAG_WINDOW_MANAGER);
         return changed;
     }

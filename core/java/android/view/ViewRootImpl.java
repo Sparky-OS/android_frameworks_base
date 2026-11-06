@@ -2266,6 +2266,9 @@ public final class ViewRootImpl implements ViewParent,
     }
 
     private void destroySurface() {
+        LegacyGadmeiClient.unregister(this, mLegacyGadmeiMainId);
+        mLegacyGadmeiMainId = -1;
+        mLegacyGadmeiMainKind = -1;
         if (mBoundsLayer != null) {
             mBoundsLayer.release();
             mBoundsLayer = null;
@@ -4480,7 +4483,22 @@ public final class ViewRootImpl implements ViewParent,
         });
     }
 
+    private int mLegacyGadmeiMainId = -1;
+    private int mLegacyGadmeiMainKind = -1;
+
     private boolean performDraw() {
+        if (LegacyGadmeiClient.enabled() && mSurfaceControl.isValid()) {
+            int id = mSurfaceControl.getLayerId();
+            int kind = LegacyGadmeiClient.hasMedia(mView) ? 2 : 0;
+            if (id != mLegacyGadmeiMainId || kind != mLegacyGadmeiMainKind) {
+                if (id != mLegacyGadmeiMainId) {
+                    LegacyGadmeiClient.unregister(this, mLegacyGadmeiMainId);
+                }
+                LegacyGadmeiClient.register(this, mSurfaceControl, kind);
+                mLegacyGadmeiMainId = id;
+                mLegacyGadmeiMainKind = kind;
+            }
+        }
         mLastPerformDrawSkippedReason = null;
         if (mAttachInfo.mDisplayState == Display.STATE_OFF && !mReportNextDraw) {
             mLastPerformDrawSkippedReason = "screen_off";

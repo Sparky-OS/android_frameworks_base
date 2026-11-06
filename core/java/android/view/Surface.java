@@ -303,6 +303,11 @@ public class Surface implements Parcelable {
         if (surfaceTexture == null) {
             throw new IllegalArgumentException("surfaceTexture must not be null");
         }
+        Surface profileSurface = LegacyGadmeiTexture.createSurface(surfaceTexture);
+        if (profileSurface != null) {
+            transferFrom(profileSurface);
+            return;
+        }
         mIsSingleBuffered = surfaceTexture.isSingleBuffered();
         synchronized (mLock) {
             mName = surfaceTexture.toString();

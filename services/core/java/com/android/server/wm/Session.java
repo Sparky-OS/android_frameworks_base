@@ -95,6 +95,26 @@ import java.util.function.BiConsumer;
 class Session extends IWindowSession.Stub implements IBinder.DeathRecipient {
     final WindowManagerService mService;
     final IWindowSessionCallback mCallback;
+    @Override
+    public boolean writeLegacyGadmeiControl(String path, String value) {
+        synchronized (mService.mGlobalLock) {
+            return mService.mLegacyGadmeiStereo.write(mUid, path, value);
+        }
+    }
+
+    @Override
+    public void updateLegacyGadmeiSurface(IWindow client, SurfaceControl surface,
+            int layerId, int kind) {
+        synchronized (mService.mGlobalLock) {
+            WindowState window = mService.windowForClientLocked(this, client, false);
+            if (window != null) {
+                mService.mLegacyGadmeiStereo.update(window, surface, layerId, kind);
+            } else if (surface != null) {
+                surface.release();
+            }
+        }
+    }
+
     final int mUid;
     final int mPid;
     private final String mStringName;

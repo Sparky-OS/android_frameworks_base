@@ -240,6 +240,7 @@ public class SurfaceTexture {
      */
     public void setDefaultBufferSize(int width, int height) {
         nativeSetDefaultBufferSize(width, height);
+        android.view.LegacyGadmeiTexture.setDefaultBufferSize(this, width, height);
     }
 
     /**

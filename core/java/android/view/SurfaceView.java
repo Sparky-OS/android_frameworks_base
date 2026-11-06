@@ -743,6 +743,7 @@ public class SurfaceView extends View implements ViewRootImpl.SurfaceChangedCall
                 mBackgroundControl = null;
             }
             if (mBlastSurfaceControl != null) {
+                LegacyGadmeiClient.unregister(getViewRootImpl(), mBlastSurfaceControl.getLayerId());
                 transaction.remove(mBlastSurfaceControl);
                 mBlastSurfaceControl = null;
             }
@@ -1245,6 +1246,7 @@ public class SurfaceView extends View implements ViewRootImpl.SurfaceChangedCall
         mBlastBufferQueue = new BLASTBufferQueue(name, false /* updateDestinationFrame */);
         mBlastBufferQueue.update(mBlastSurfaceControl, mSurfaceWidth, mSurfaceHeight, mFormat);
         mBlastBufferQueue.setTransactionHangCallback(ViewRootImpl.sTransactionHangCallback);
+        LegacyGadmeiClient.register(viewRoot, mBlastSurfaceControl, 1);
     }
 
     private void onDrawFinished() {

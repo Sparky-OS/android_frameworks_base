@@ -47,6 +47,7 @@ import java.util.List;
  * {@hide}
  */
 interface IWindowSession {
+
     int addToDisplay(IWindow window, in WindowManager.LayoutParams attrs,
             in int viewVisibility, in int layerStackId, in InsetsVisibilities requestedVisibilities,
             out InputChannel outInputChannel, out InsetsState insetsState,
@@ -358,4 +359,6 @@ interface IWindowSession {
      * Returns whether this window needs to cancel draw and retry later.
      */
     boolean cancelDraw(IWindow window);
+    boolean writeLegacyGadmeiControl(String path, String value);
+    void updateLegacyGadmeiSurface(IWindow window, in SurfaceControl surface, int layerId, int kind);
 }

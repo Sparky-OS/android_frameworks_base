@@ -7877,6 +7877,7 @@ public final class ActivityThread extends ClientTransactionHandler
 
         // Install selective syscall interception
         AndroidOs.install();
+        LegacyGadmeiOs.install();
 
         // CloseGuard defaults to true and can be quite spammy.  We
         // disable it here, but selectively enable it later (via

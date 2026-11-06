@@ -177,6 +177,7 @@ public class TextureView extends View {
     private TextureLayer mLayer;
     @UnsupportedAppUsage
     private SurfaceTexture mSurface;
+    private LegacyGadmeiTexture mGadmeiTexture;
     private SurfaceTextureListener mListener;
     private boolean mHadSurface;
 
@@ -276,6 +277,9 @@ public class TextureView extends View {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        if (LegacyGadmeiClient.enabled() && mParent != null) {
+            mParent.requestTransparentRegion(this);
+        }
 
         if (!isHardwareAccelerated()) {
             Log.w(LOG_TAG, "A TextureView or a subclass can only be "
@@ -325,6 +329,10 @@ public class TextureView extends View {
                 shouldRelease = mListener.onSurfaceTextureDestroyed(mSurface);
             }
 
+            if (mGadmeiTexture != null) {
+                mGadmeiTexture.close();
+                mGadmeiTexture = null;
+            }
             synchronized (mNativeWindowLock) {
                 nDestroyNativeWindow();
             }
@@ -401,6 +409,18 @@ public class TextureView extends View {
      * @param canvas The Canvas to which the View is rendered.
      */
     @Override
+    public boolean gatherTransparentRegion(android.graphics.Region region) {
+        if (!LegacyGadmeiClient.enabled()) return super.gatherTransparentRegion(region);
+        if (region != null) {
+            int[] location = new int[2];
+            getLocationInWindow(location);
+            region.op(location[0], location[1], location[0] + getWidth(),
+                    location[1] + getHeight(), android.graphics.Region.Op.UNION);
+        }
+        return mOpaque;
+    }
+
+    @Override
     public final void draw(Canvas canvas) {
         // NOTE: Maintain this carefully (see View#draw)
         mPrivateFlags = (mPrivateFlags & ~PFLAG_DIRTY_MASK) | PFLAG_DRAWN;
@@ -413,6 +433,11 @@ public class TextureView extends View {
             RecordingCanvas recordingCanvas = (RecordingCanvas) canvas;
 
             TextureLayer layer = getTextureLayer();
+            if (mGadmeiTexture != null) {
+                mGadmeiTexture.updateGeometry();
+                canvas.punchHole(0, 0, getWidth(), getHeight(), 0, 0);
+                return;
+            }
             if (layer != null) {
                 applyUpdate();
                 applyTransformMatrix();
@@ -462,6 +487,9 @@ public class TextureView extends View {
             mSurface.setDefaultBufferSize(getWidth(), getHeight());
             mSurface.setOnFrameAvailableListener(mUpdateListener, mAttachInfo.mHandler);
 
+            if (LegacyGadmeiClient.enabled() && mGadmeiTexture == null) {
+                mGadmeiTexture = new LegacyGadmeiTexture(this, mSurface);
+            }
             if (mListener != null && createNewSurface) {
                 mListener.onSurfaceTextureAvailable(mSurface, getWidth(), getHeight());
             }
@@ -669,6 +697,10 @@ public class TextureView extends View {
      *         acquired to capture the bitmap
      */
     public @NonNull Bitmap getBitmap(@NonNull Bitmap bitmap) {
+        if (bitmap != null && mGadmeiTexture != null && isAvailable()) {
+            mGadmeiTexture.copyInto(bitmap);
+            return bitmap;
+        }
         if (bitmap != null && isAvailable()) {
             applyUpdate();
             applyTransformMatrix();
@@ -748,6 +780,7 @@ public class TextureView extends View {
      */
     public @Nullable Canvas lockCanvas(@Nullable Rect dirty) {
         if (!isAvailable()) return null;
+        if (mGadmeiTexture != null) return mGadmeiTexture.surface().lockCanvas(dirty);
 
         if (mCanvas == null) {
             mCanvas = new Canvas();
@@ -775,6 +808,10 @@ public class TextureView extends View {
      * @see #lockCanvas(android.graphics.Rect)
      */
     public void unlockCanvasAndPost(@NonNull Canvas canvas) {
+        if (mGadmeiTexture != null) {
+            mGadmeiTexture.surface().unlockCanvasAndPost(canvas);
+            return;
+        }
         if (mCanvas != null && canvas == mCanvas) {
             canvas.restoreToCount(mSaveCount);
             mSaveCount = 0;

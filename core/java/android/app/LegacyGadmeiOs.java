@@ -8,6 +8,8 @@ import android.view.LegacyGadmeiClient;
 
 import java.io.FileDescriptor;
 import java.io.InterruptedIOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
@@ -17,8 +19,37 @@ import libcore.io.Os;
 /** Intercept only the family's three Java file endpoints, never host sysfs. */
 final class LegacyGadmeiOs extends ForwardingOs {
     private final SparseArray<String> mControls = new SparseArray<>();
+    private final Os mDelegate;
 
-    private LegacyGadmeiOs(Os os) { super(os); }
+    private LegacyGadmeiOs(Os os) { super(os); mDelegate = os; }
+
+    // These runtime virtuals are omitted from framework's core-platform compile stubs.
+    // Resolve the existing interface methods without widening libcore's module API.
+    private static final class HiddenMethods {
+        static final Method CLOSE = method("close", FileDescriptor.class);
+        static final Method WRITE_BYTES = method("write", FileDescriptor.class,
+                byte[].class, int.class, int.class);
+        static final Method WRITE_BUFFER = method("write", FileDescriptor.class, ByteBuffer.class);
+
+        private static Method method(String name, Class<?>... types) {
+            try { return Os.class.getMethod(name, types); }
+            catch (NoSuchMethodException e) { throw new AssertionError(e); }
+        }
+    }
+
+    private Object forward(Method method, Object... arguments)
+            throws ErrnoException, InterruptedIOException {
+        try { return method.invoke(mDelegate, arguments); }
+        catch (IllegalAccessException e) { throw new AssertionError(e); }
+        catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof ErrnoException) throw (ErrnoException) cause;
+            if (cause instanceof InterruptedIOException) throw (InterruptedIOException) cause;
+            if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+            if (cause instanceof Error) throw (Error) cause;
+            throw new AssertionError(cause);
+        }
+    }
 
     static void install() {
         if (!LegacyGadmeiClient.enabled()) return;
@@ -43,21 +74,20 @@ final class LegacyGadmeiOs extends ForwardingOs {
         return fd;
     }
 
-    @Override
     public void close(FileDescriptor fd) throws ErrnoException {
         synchronized (mControls) { mControls.remove(fd.getInt$()); }
-        super.close(fd);
+        try { forward(HiddenMethods.CLOSE, fd); }
+        catch (InterruptedIOException e) { throw new AssertionError(e); }
     }
 
     private String control(FileDescriptor fd) {
         synchronized (mControls) { return mControls.get(fd.getInt$()); }
     }
 
-    @Override
     public int write(FileDescriptor fd, byte[] bytes, int offset, int count)
             throws ErrnoException, InterruptedIOException {
         String path = control(fd);
-        if (path == null) return super.write(fd, bytes, offset, count);
+        if (path == null) return (int) forward(HiddenMethods.WRITE_BYTES, fd, bytes, offset, count);
         if (offset < 0 || count < 0 || offset > bytes.length - count) {
             throw new ArrayIndexOutOfBoundsException();
         }
@@ -74,10 +104,9 @@ final class LegacyGadmeiOs extends ForwardingOs {
         return count;
     }
 
-    @Override
     public int write(FileDescriptor fd, ByteBuffer buffer)
             throws ErrnoException, InterruptedIOException {
-        if (control(fd) == null) return super.write(fd, buffer);
+        if (control(fd) == null) return (int) forward(HiddenMethods.WRITE_BUFFER, fd, buffer);
         if (buffer.remaining() > 64) {
             throw new ErrnoException("Gadmei control too long", OsConstants.EINVAL);
         }

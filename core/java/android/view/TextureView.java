@@ -563,6 +563,7 @@ public class TextureView extends View {
                 mSurface.setOnFrameAvailableListener(null);
             }
         }
+        if (mGadmeiTexture != null) mGadmeiTexture.updateGeometry();
     }
 
     private void updateLayer() {

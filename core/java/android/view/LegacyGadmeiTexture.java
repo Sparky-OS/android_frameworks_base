@@ -113,7 +113,7 @@ public final class LegacyGadmeiTexture {
 
 
     void updateGeometry() {
-        if (!mRoot.getSurfaceControl().isValid()) return;
+        if (mClosed || !mRoot.getSurfaceControl().isValid()) return;
         int[] location = new int[2];
         mView.getLocationInWindow(location);
         android.graphics.Matrix image = mView.getTransform(new android.graphics.Matrix());

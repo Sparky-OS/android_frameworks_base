@@ -140,7 +140,7 @@ final class LegacyGadmeiStereo {
         if (drawing.applied == layout || !drawing.surface.isValid()) return;
         Parcel value = Parcel.obtain();
         try (SurfaceControl.Transaction transaction = new SurfaceControl.Transaction()) {
-            if (layout != 0) value.writeInt32(layout);
+            if (layout != 0) value.writeInt(layout);
             transaction.setMetadata(drawing.surface, KEY, value).apply();
             drawing.applied = layout;
             Slog.i("LegacyStereo", "Gadmei layer=" + drawing.surface.getLayerId() + " layout=" + layout);

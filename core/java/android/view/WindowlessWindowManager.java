@@ -81,6 +81,7 @@ public class WindowlessWindowManager implements IWindowSession {
     protected final SurfaceControl mRootSurface;
     private final Configuration mConfiguration;
     private final IWindowSession mRealWm;
+    private boolean mGadmeiRegistrationReported;
     private final IBinder mHostInputToken;
     private final IBinder mFocusGrantToken = new Binder();
     private InsetsState mInsetsState;
@@ -566,5 +567,22 @@ public class WindowlessWindowManager implements IWindowSession {
     @Override
     public boolean cancelDraw(IWindow window) {
         return false;
+    }
+
+    @Override
+    public boolean writeLegacyGadmeiControl(String path, String value) throws RemoteException {
+        return mRealWm.writeLegacyGadmeiControl(path, value);
+    }
+
+    @Override
+    public void updateLegacyGadmeiSurface(IWindow window, SurfaceControl surface,
+            int layerId, int kind) {
+        // Embedded clients have no WindowState owned by this session. Do not
+        // associate their surfaces with an unrelated foreground window.
+        if (surface != null && !mGadmeiRegistrationReported) {
+            mGadmeiRegistrationReported = true;
+            Log.i("LegacyStereo", "Gadmei windowless drawing has no verified task owner; "
+                    + "layer remains undeclared");
+        }
     }
 }

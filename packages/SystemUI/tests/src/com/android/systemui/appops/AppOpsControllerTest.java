@@ -170,6 +170,16 @@ public class AppOpsControllerTest extends SysuiTestCase {
         assertThat(mController.getActiveAppOps()).isEmpty();
     }
 
+    /** Regression test for b/324329757 */
+    @Test
+    public void startListening_fetchCurrentActive_nullPackageOps() {
+        when(mAppOpsManager.getPackagesForOps(AppOpsControllerImpl.OPS)).thenReturn(null);
+
+        mController.setListening(true);
+
+        assertThat(mController.getActiveAppOps()).isEmpty();
+    }
+
     /** Regression test for b/294104969. */
     @Test
     public void startListening_fetchesCurrentActive_oneActive() {
